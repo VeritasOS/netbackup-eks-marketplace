@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AWS CloudFormation template that installs EBS driver and creates storage class.
+Parameters:
+  EKSOpenIdConnectProviderUrl:
+    Type: String
+  ClusterName:
+    Type: String
+  ClusterEndpoint:
+    Type: String
+  CreateNewCluster:
+    Type: String   
+    
+Conditions:
+  IsCreateNewCluster: !Equals 
+    - !Ref CreateNewCluster
+    - "Yes"
+
+Resources:
+  EbsDriverServiceAccountRole:
+    Type: "AWS::IAM::Role"
+    Condition: IsCreateNewCluster
+    Properties:
+      AssumeRolePolicyDocument:
+                            Fn::Sub: 
+                              - |
+                                {
+                                  "Version": "2012-10-17",
+                                  "Statement": [
+                                    {
+                                      "Effect": "Allow",
+                                      "Principal": {
+                                        "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/oidc.eks.${AWS::Region}.amazonaws.com/id/${id}"
+                                      },
+                                      "Action": "sts:AssumeRoleWithWebIdentity",
+                                      "Condition": {
+                                        "StringEquals": {
+                                          "${clusteridsub}": "system:serviceaccount:kube-system:ebs-csi-controller-sa",
+                                          "${clusteridaud}": "sts.amazonaws.com"
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              - 
+                                clusteridsub: !Join ["",[!Sub "oidc.eks.${AWS::Region}.amazonaws.com/id/",!Select [1, !Split ["//", !Select [0, !Split [".", !Ref ClusterEndpoint]]]],":sub"]]
+                                clusteridaud: !Join ["",[!Sub "oidc.eks.${AWS::Region}.amazonaws.com/id/",!Select [1, !Split ["//", !Select [0, !Split [".", !Ref ClusterEndpoint]]]],":aud"]]
+                                id: !Select [1, !Split ["//", !Select [0, !Split [".", !Ref ClusterEndpoint]]]]
+                                Region: !Sub ${AWS::Region}
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
+      # PermissionsBoundary: "arn:aws:iam::975255136272:policy/AWS_Engineering_Admin_Permission_Boundary"
+  
+  EbsDriverServiceAccount:
+    Type: "AWSQS::Kubernetes::Resource"
+    Condition: IsCreateNewCluster
+    DependsOn:
+      - EbsDriverServiceAccountRole
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: kube-system
+      Manifest: !Sub |
+            apiVersion: v1
+            kind: ServiceAccount
+            metadata:
+              labels:
+                app.kubernetes.io/name: aws-ebs-csi-driver
+              name: ebs-csi-controller-sa
+              namespace: kube-system
+              annotations:
+                eks.amazonaws.com/role-arn: ${EbsDriverServiceAccountRole.Arn}
+  
+  EbsAddon:
+    Type: AWS::EKS::Addon
+    Condition: IsCreateNewCluster
+    DependsOn:
+      - EbsDriverServiceAccount
+    Properties: 
+      AddonName: aws-ebs-csi-driver
+      AddonVersion: v1.11.4-eksbuild.1
+      ClusterName: !Ref ClusterName
+      ResolveConflicts: OVERWRITE
+      ServiceAccountRoleArn: !GetAtt EbsDriverServiceAccountRole.Arn
+      
+  EbsAddonReady:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      IsReadyLoadBalancerController: !If [ IsCreateNewCluster, !Ref EbsAddon, "" ]
+
+  EbsStorage:
+    Type: "AWSQS::Kubernetes::Resource"
+    DependsOn:
+      - EbsAddonReady
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: netbackup
+      Manifest: !Sub |
+        apiVersion: storage.k8s.io/v1
+        kind: StorageClass
+        metadata:
+          annotations:
+            storageclass.kubernetes.io/is-default-class: "true"
+          name: aws-storage
+        parameters:
+          fsType: ext4
+          type: gp2
+        provisioner: kubernetes.io/aws-ebs
+        reclaimPolicy: Retain
+        volumeBindingMode: WaitForFirstConsumer
+        allowVolumeExpansion: true
