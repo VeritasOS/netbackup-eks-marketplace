@@ -104,6 +104,7 @@ Metadata:
     - Label:
         default: Other Configuration
       Parameters:
+      - BucketName
       - ExtensionActivation
       - KubernetesHelmRoleArn
       - KubernetesResourceRoleArn
@@ -131,9 +132,9 @@ Metadata:
       SubnetForLoadBalancer:
         default: Subnet for Load Balancer
       EKSRoleArn:
-        default: Cluster service role
+        default: ARN of Cluster service role
       EKSClusterAccessRoleArn:
-        default: IAM role required to access EKS Cluster from EC2
+        default: ARN of IAM role required to access EKS Cluster from EC2
       EKSClusterSecurityGroup:
         default: Cluster security group created by EKS      
       EKSServiceIpv4Cidr:
@@ -238,14 +239,16 @@ Metadata:
         default: Password
       SnapshotServerConfirmPassword:
         default: Confirm Password
+      BucketName:
+        default: S3 Bucket Name containing deployment templates
       ExtensionActivation:
         default: Confirm AWSQS::Kubernetes::Helm, AWSQS::EKS::Cluster, AWSQS::Kubernetes::Resource Cloudfromation extensions are activated?
       KubernetesHelmRoleArn:
-        default: Execution role arn of AWSQS::Kubernetes::Helm extension
+        default: ARN of Execution role of AWSQS::Kubernetes::Helm extension
       KubernetesResourceRoleArn:
-        default: Execution role arn of AWSQS::Kubernetes::Resource extension
+        default: ARN of Execution role of AWSQS::Kubernetes::Resource extension
       KubernetesClusterRoleName:
-        default: Execution role name of AWSQS::EKS::Cluster extension
+        default: Name of Execution role of AWSQS::EKS::Cluster extension
 
 Parameters:
   InstanceName:
@@ -299,7 +302,9 @@ Parameters:
     ConstraintDescription: "Must be in valid CIDR notation. For example : 10.0.0.0/16"
   EKSRoleArn:
     Type: String
-    Description: Select the IAM role to allow the Kubernetes control plane to manage AWS resources on your behalf. This property cannot be changed after the cluster is created. To create a new role, follow the instructions in the Amazon EKS User Guide.
+    Description: Provide the ARN of IAM role to allow the Kubernetes control plane to manage AWS resources on your behalf. This property cannot be changed after the cluster is created. To create a new role, follow the instructions in the Amazon EKS User Guide.
+    MinLength: 1
+    ConstraintDescription: Please provide ARN of Cluster service role.
   EKSClusterAccessRoleArn:
     Type: String
     Default: ""
@@ -626,6 +631,14 @@ Parameters:
     Description: >-
       Required only if AWSQS::EKS::Cluster cloudformation extension is already activated.
       Provide execution role name of AWSQS::EKS::Cluster extension.
+  BucketName:
+    Type: String
+    MinLength: 1
+    Description: >-
+      Provide S3 Bucket name where deployment templates are uploaded.
+      Upload templates directly into bucket, do not create any folders into bucket to upload templates.
+      Please make sure bucket is created in the same region where deployment will happen.
+    ConstraintDescription: "Please provide S3 bucket name where deployment templates are uploaded."
 
 
 Conditions:
@@ -854,7 +867,7 @@ Resources:
       - HelmExtensionActivationReady
       - KubernetesResourceExtensionActivationReady
     Properties:
-      TemplateURL: <PATH_TO_CREATE_CLUSTER_FILE>
+      TemplateURL: !Sub https://${BucketName}.s3.${AWS::Region}.amazonaws.com/cluster_creation.yaml
       Parameters:
         InstanceName: !Ref InstanceName
         CreateNewCluster: !Ref CreateNewCluster
@@ -894,7 +907,7 @@ Resources:
     DependsOn: 
       - EksCluster
     Properties:
-      TemplateURL: <PATH_TO_INSTALL_EFS_DRIVER_FILE>
+      TemplateURL: !Sub https://${BucketName}.s3.${AWS::Region}.amazonaws.com/efs_driver.yaml
       Parameters:
         EKSOpenIdConnectProviderUrl: !GetAtt ["EksCluster", "Outputs.EKSOpenIdConnectProviderUrl"]
         ClusterName: !GetAtt ["EksCluster", "Outputs.ClusterName"]
@@ -906,7 +919,7 @@ Resources:
     DependsOn: 
       - EfsDriver
     Properties:
-      TemplateURL: <PATH_TO_LOAD_BALANCER_CONTROLLER_FILE>
+      TemplateURL: !Sub https://${BucketName}.s3.${AWS::Region}.amazonaws.com/load_balancer.yaml
       Parameters:
         EKSOpenIdConnectProviderUrl: !GetAtt ["EksCluster", "Outputs.EKSOpenIdConnectProviderUrl"]
         ClusterName: !GetAtt ["EksCluster", "Outputs.ClusterName"]
@@ -917,7 +930,7 @@ Resources:
     DependsOn: 
       - LoadBalancerControllerReady
     Properties:
-      TemplateURL: <PATH_TO_EFS_VOLUME_MOUNT_FILE>
+      TemplateURL: !Sub https://${BucketName}.s3.${AWS::Region}.amazonaws.com/efs_volume_mount.yaml
       Parameters:
         ClusterName: !If [ IsCreateNewCluster, !GetAtt ["EksCluster", "Outputs.ClusterName"], !Ref EKSClusterName ]
         SecurityGroup: !Ref EKSSecurityGroupIds
@@ -931,7 +944,7 @@ Resources:
     DependsOn: 
       - EFSVolumeMount
     Properties:
-      TemplateURL: <PATH_TO_EBS_VOLUME_MOUNT_FILE>
+      TemplateURL: !Sub https://${BucketName}.s3.${AWS::Region}.amazonaws.com/ebs.yaml
       Parameters:
         EKSOpenIdConnectProviderUrl: !If [ IsCreateNewCluster, !GetAtt ["EksCluster", "Outputs.EKSOpenIdConnectProviderUrl"], "" ]
         ClusterName: !If [ IsCreateNewCluster, !GetAtt ["EksCluster", "Outputs.ClusterName"], !Ref EKSClusterName ]
@@ -943,7 +956,7 @@ Resources:
     DependsOn: 
       - EBSVolumeMount
     Properties:
-      TemplateURL: <PATH_TO_HELM_CHART_INSTALLATION_FILE>
+      TemplateURL: !Sub https://${BucketName}.s3.${AWS::Region}.amazonaws.com/helm.yaml
       Parameters:
         ClusterName: !If [ IsCreateNewCluster, !GetAtt ["EksCluster", "Outputs.ClusterName"], !Ref EKSClusterName ]
         SecurityGroupId: !Ref EKSSecurityGroupIds
