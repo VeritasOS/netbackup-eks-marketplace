@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: AWS CloudFormation template that installs NBUX helm chart.
+Description: AWS CloudFormation template that installs helm chart.
 Parameters:
   ClusterName:
     Type: String

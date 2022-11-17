@@ -26,6 +26,10 @@ Resources:
       PerformanceMode: generalPurpose
       ProvisionedThroughputInMibps: 256
       ThroughputMode: provisioned
+      Encrypted: true
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub ${InstanceName}-primary-file-system
 
   PrimaryEFSMountTarget:
     Type: AWS::EFS::MountTarget
@@ -46,6 +50,10 @@ Resources:
       PerformanceMode: generalPurpose
       ProvisionedThroughputInMibps: 256
       ThroughputMode: provisioned
+      Encrypted: true
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub ${InstanceName}-snapshot-manager-file-system
   
   SnapshotManagerEFSMountTarget:
     Type: AWS::EFS::MountTarget
