@@ -93,7 +93,7 @@ Metadata:
       - KMSKeyPassphrase
       - ConfirmKMSKeyPassphrase
     - Label:
-        default: Snapshot Server Details
+        default: Snapshot Manager Details
       Parameters:
       - SnapshotServerHostNameMapping
       - SnapshotServerLogsSize
@@ -325,7 +325,7 @@ Parameters:
         characters."
   PrimaryInstanceType:
     Type: String
-    Default: "m5.2xlarge"
+    Default: "m5.4xlarge"
     Description: Specify the instance type for a node group.  
   PrimaryHostNameMapping:
     Type: String
@@ -576,7 +576,7 @@ Parameters:
   SnapshotServerHostNameMapping:
     Type: String
     Description: >-
-     Provide hostname mapping of NetBackup Snapshot Server.
+     Provide hostname mapping of NetBackup Snapshot Manager.
      Hostname should be in format of <IP>:<FQDN> e.g <IP>:<FQDN>,<IP>:<FQDN> 
      <FQDN> must be entered in lower case, and be compliant with RFC 1123 and RFC 952. 
      For example, the underscore character ( _ ) is not a supported character for hostnames.
@@ -584,24 +584,24 @@ Parameters:
     Type: String
     Default: "100"
     AllowedPattern: ^([5-9]|[1-9][0-9]{1,})$
-    Description: Provide the size for Snapshot Server logs. The log volume must be at least 5 Gi.
+    Description: Provide the size for Snapshot Manager logs. The log volume must be at least 5 Gi.
     ConstraintDescription: "Only a numerical value of 5 or above is allowed for Snapshot Manager log size."
   SnapshotServerDataSize:
     Type: String
     Default: "100"
     AllowedPattern: ^([1-9][0-9]{2,})$
-    Description: Provide the size for Snapshot Server Data. The Data volume must be at least 100 Gi.
+    Description: Provide the size for Snapshot Manager Data. The Data volume must be at least 100 Gi.
     ConstraintDescription: "Only a numerical value of 100 or above is allowed for Snapshot Manager data size."
   SnapshotServerUsername:
     Type: String
     AllowedPattern: ^[a-z]([a-z0-9_-]{0,31})$
-    Description: Provide username to configure Snapshot Server.
+    Description: Provide username to configure Snapshot Manager.
     ConstraintDescription: "Snapshot Manager username must be of 1-32 characters long, must contain only lowercase alphanumeric characters, hyphens or underscores."
   SnapshotServerPassword:
     Type: String
     AllowedPattern: ^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*?&.])[A-Za-z0-9@$!%*?&.]{12,}$
     NoEcho: true
-    Description: Provide password for the user to configure the Snapshot Server.
+    Description: Provide password for the user to configure the Snapshot Manager.
     ConstraintDescription: "Snapshot Manager password must be at least 12 characters long and must have at least a number, a lower case, an upper case and a special character (@$!%*?&.)"
   SnapshotServerConfirmPassword:
     Type: String
@@ -711,7 +711,6 @@ Resources:
                   - "ssm:GetParameter"
                   - "ssm:DeleteParameter"
                 Resource: "*"
-      # PermissionsBoundary: "arn:aws:iam::975255136272:policy/AWS_Engineering_Admin_Permission_Boundary"
 
   EksExecutionRole:
     Type: AWS::IAM::Role
@@ -765,7 +764,6 @@ Resources:
                   - "cloudwatch:ListMetrics"
                   - "cloudwatch:PutMetricData"
                 Resource: "*"
-      # PermissionsBoundary: "arn:aws:iam::975255136272:policy/AWS_Engineering_Admin_Permission_Boundary"
 
   KuernetesExecutionRole:
     Type: AWS::IAM::Role
@@ -822,7 +820,6 @@ Resources:
                   - "ssm:GetParameter"
                   - "ssm:DeleteParameter"
                 Resource: "*"
-      # PermissionsBoundary: "arn:aws:iam::975255136272:policy/AWS_Engineering_Admin_Permission_Boundary"
 
   HelmExtensionActivation:
     Type: AWS::CloudFormation::TypeActivation

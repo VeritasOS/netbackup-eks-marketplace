@@ -264,7 +264,6 @@ Resources:
                         }
                     ]
                   }
-      # PermissionsBoundary: "arn:aws:iam::975255136272:policy/AWS_Engineering_Admin_Permission_Boundary"
 
   LoadBalancerServiceAccount:
     Type: "AWSQS::Kubernetes::Resource"

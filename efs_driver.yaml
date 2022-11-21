@@ -143,7 +143,6 @@ Resources:
                       }
                     ]
                   }
-      # PermissionsBoundary: "arn:aws:iam::975255136272:policy/AWS_Engineering_Admin_Permission_Boundary"
 
   EfsDriverServiceAccount:
     Type: "AWSQS::Kubernetes::Resource"
