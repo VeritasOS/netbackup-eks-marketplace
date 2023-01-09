@@ -1,0 +1,393 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation template that creates EKS Cluster.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Basics
+      Parameters:
+      - InstanceName
+      - LicenseKey
+    - Label:
+        default: Cluster Configuration
+      Parameters:
+      - CreateNewCluster
+      - VirtualNetwork
+      - EKSClusterName
+      - EKSPublicAccessEndpoint
+      - EKSSubnet1Id
+      - EKSSubnet2Id
+      - EKSSecurityGroupIds
+      - EKSServiceIpv4Cidr
+      - EKSRoleArn
+      - HelmRoleArn
+      - LambdaRoleName
+      - EKSClusterAccessRoleArn
+    - Label:
+        default: Primary Server Node group Configuration
+      Parameters:
+      - PrimaryNodeGroupName
+      - PrimaryInstanceType
+      - PrimaryDesiredNodeSize
+    - Label:
+        default: Media Server Node group Configuration
+      Parameters:
+      - MediaNodeGroupName
+      - MediaInstanceType
+      - MediaDesiredNodeSize
+    - Label:
+        default: Storage Server Node group Configuration
+      Parameters:
+      - StorageNodeGroupName
+      - StorageInstanceType
+      - StorageDesiredNodeSize
+    - Label:
+        default: Control Plane Node group Configuration
+      Parameters:
+      - ControlPlaneNodeGroupName
+      - ControlPlaneInstanceType
+      - ControlPlaneDesiredNodeSize
+    - Label:
+        default: Data Plane Node group Configuration
+      Parameters:
+      - DataPlaneNodeGroupName
+      - DataPlaneInstanceType
+      - DataPlaneDesiredNodeSize
+    ParameterLabels:
+      InstanceName:
+        default: Instance Name
+      LicenseKey:
+        default: License Key
+      CreateNewCluster:
+        default: Create a new EKS cluster ?
+      EKSClusterName:
+        default: Kubernetes cluster name
+      VirtualNetwork: 
+        default: Virtual Network
+      EKSPublicAccessEndpoint:
+        default: Configure access to the Kubernetes API server endpoint from outside of your VPC
+      EKSSecurityGroupIds:
+        default: Specify security group for your Amazon EKS
+      EKSSubnet1Id:
+        default: Subnet for EKS Cluster
+      EKSSubnet2Id:
+        default: Subnet for EKS Cluster
+      EKSRoleArn:
+        default: Cluster service role
+      EKSClusterAccessRoleArn:
+        default: Specify the Amazon Resource Name (ARN) of the IAM role, required to access EKS Cluster from EC2
+      EKSServiceIpv4Cidr:
+        default: Specify the CIDR block to assign Kubernetes service IP addresses from for your Amazon EKS cluster
+      PrimaryNodeGroupName:
+        default: Specify Primary server node group name
+      PrimaryDesiredNodeSize:
+        default: Specify the current number of nodes that the managed node group should maintain.
+      PrimaryInstanceType:
+        default: Specify the instance types for a node group.
+      MediaNodeGroupName:
+        default: Specify Media server node group name.
+      MediaDesiredNodeSize:
+        default: Specify the current number of nodes that the managed node group should maintain.
+      MediaInstanceType:
+        default: Specify the instance types for a node group.
+      StorageNodeGroupName:
+        default: Specify Storage server node group name.
+      StorageDesiredNodeSize:
+        default: Specify the current number of nodes that the managed node group should maintain.
+      StorageInstanceType:
+        default: Specify the instance types for a node group.
+      HelmRoleArn:
+        default: Provide helm role
+      LambdaRoleName:
+        default: Provide lambda role
+      ControlPlaneNodeGroupName:
+        default: Specify Storage server node group name.
+      ControlPlaneDesiredNodeSize:
+        default: Specify the current number of nodes that the managed node group should maintain.
+      ControlPlaneInstanceType:
+        default: Specify the instance types for a node group.
+      DataPlaneNodeGroupName:
+        default: Specify Storage server node group name.
+      DataPlaneDesiredNodeSize:
+        default: Specify the current number of nodes that the managed node group should maintain.
+      DataPlaneInstanceType:
+        default: Specify the instance types for a node group.    
+      SnapshotServerLogsStorageType:
+        default: Logs Storage Type
+      SnapshotServerLogsSize:
+        default: Logs Size in Gi
+Parameters:
+  InstanceName:
+    Type: String
+    Description: Provide an instance name which should be used for the application environment in the cluster.
+  CreateNewCluster:
+    Type: String
+    AllowedValues: ["Yes", "No"]
+    Default: "Yes"
+    Description: Select 'Yes' to create a new EKS cluster, or select 'No' to provide an existing EKS cluster.
+  EKSClusterName:
+    Type: String
+    Description: Name for the EKS cluster. This must be unique within the Region.
+  VirtualNetwork: 
+    Type: AWS::EC2::VPC::Id
+    Description: Select a virtual network for the EKS cluster subnet and the application Load Balancer subnet. We do not support creation of virtual network as part of deployment. Make sure you select the same network as that of the cluster vNet.
+  EKSPublicAccessEndpoint:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: false
+    Description: Configure access to the Kubernetes API server endpoint from outside of your VPC.
+  EKSSecurityGroupIds:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Specify security groups for your Amazon EKS
+  EKSSubnet1Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Select a subnet from the virtual network.
+  EKSSubnet2Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Select a subnet from the virtual network.
+  EKSServiceIpv4Cidr:
+    Type: String
+    Default: 10.100.0.0/16
+    Description: The CIDR block to assign Kubernetes service IP addresses from.
+  EKSRoleArn:
+    Type: String
+    Description: Select the IAM role to allow the Kubernetes control plane to manage AWS resources on your behalf. This property cannot be changed after the cluster is created. To create a new role, follow the instructions in the Amazon EKS User Guide.
+  EKSClusterAccessRoleArn:
+    Type: String
+    Description: Specify the Amazon Resource Name (ARN) of the IAM role, required to access EKS Cluster from EC2. It must be different from the role mentioned above.
+  PrimaryNodeGroupName:
+    Type: String
+    Description: Specify Primary server node group name.
+  PrimaryInstanceType:
+    Type: String
+    Default: "m5.2xlarge"
+    Description: Specify the instance types for a node group.  
+  MediaNodeGroupName:
+    Type: String
+    Description: Specify Media server node group name.
+  MediaInstanceType:
+    Type: String
+    Default: "m5.2xlarge"
+    Description: Specify the instance types for a node group.
+  StorageNodeGroupName:
+    Type: String
+    Description: Specify Storage server node group name.
+  StorageInstanceType:
+    Type: String
+    Default: "r5.2xlarge"
+    Description: Specify the instance types for a node group.
+  PrimaryDesiredNodeSize:
+    Type: Number
+    MinValue: 2
+    MaxValue: 3
+    Default: 2
+    Description: Specify the current number of nodes that the managed node group should maintain.  
+  MediaDesiredNodeSize:
+    Type: Number
+    MinValue: 1
+    MaxValue: 20
+    Default: 1
+    Description: Specify the current number of nodes that the managed node group should maintain.  
+  StorageDesiredNodeSize:
+    Type: Number
+    MinValue: 4
+    MaxValue: 20
+    Default: 4
+    Description: Specify the current number of nodes that the managed node group should maintain.
+  ControlPlaneNodeGroupName:
+    Type: String
+    Description: Specify Control Plane node group name.
+  ControlPlaneInstanceType:
+    Type: String
+    Default: "r5.2xlarge"
+    Description: Specify the instance types for a node group.
+  ControlPlaneDesiredNodeSize:
+    Type: Number
+    MinValue: 1
+    MaxValue: 2
+    Default: 1
+    Description: Specify the current number of nodes that the managed node group should maintain.
+  DataPlaneNodeGroupName:
+    Type: String
+    Description: Specify Data Plane node group name.
+  DataPlaneInstanceType:
+    Type: String
+    Default: "r5.2xlarge"
+    Description: Specify the instance types for a node group.
+  DataPlaneDesiredNodeSize:
+    Type: Number
+    MinValue: 1
+    MaxValue: 3
+    Default: 1
+    Description: Specify the current number of nodes that the managed node group should maintain.   
+  HelmRoleArn:
+    Type: String
+  LambdaRoleName:
+    Type: String
+  KuernetesExecutionRoleArn:
+    Type: String
+  MediaServerReplicas:
+    Type: Number
+  StorageServerReplicas:
+    Type: Number
+Conditions:
+  IsCreateNewCluster: !Equals 
+    - !Ref CreateNewCluster
+    - "Yes"
+Resources:
+  EKSCluster:
+    Type: AWSQS::EKS::Cluster
+    Condition: IsCreateNewCluster
+    Properties:
+      Name:
+        Ref: EKSClusterName
+      Version: '1.23'
+      RoleArn: 
+        Ref: EKSRoleArn
+      LambdaRoleName: !Ref LambdaRoleName
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - Ref: EKSSecurityGroupIds
+        SubnetIds:
+          - !Ref EKSSubnet1Id
+          - !Ref EKSSubnet2Id
+        EndpointPublicAccess: 
+          Ref: EKSPublicAccessEndpoint
+        EndpointPrivateAccess: true
+      KubernetesApiAccess:        
+        Roles:
+          - Arn: !Ref HelmRoleArn
+            Username: "HelmRole"
+            Groups: ["system:masters"]
+          - Arn: !Ref EKSClusterAccessRoleArn
+            Username: system:node:{{EC2PrivateDNSName}}
+            Groups: ["system:masters"]
+          - Arn: !Ref KuernetesExecutionRoleArn
+            Username: "KubernetesRosourceRole"
+            Groups: ["system:masters"]
+  EKSNodegroupPrimary:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !If [ IsCreateNewCluster, !Ref EKSCluster , !Ref EKSClusterName ]
+      NodegroupName:
+        Ref: PrimaryNodeGroupName
+      NodeRole: !Ref EKSRoleArn
+      InstanceTypes:
+        - !Ref PrimaryInstanceType
+      ScalingConfig:
+        MinSize: 2
+        DesiredSize: 2
+        MaxSize: !Ref PrimaryDesiredNodeSize
+      Labels:
+        netbackup: !Ref PrimaryNodeGroupName
+      Subnets:
+        - !Ref EKSSubnet2Id
+  EKSNodegroupMedia:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !If [ IsCreateNewCluster, !Ref EKSCluster , !Ref EKSClusterName ]
+      NodegroupName:
+        Ref: MediaNodeGroupName
+      NodeRole:
+        Ref: EKSRoleArn
+      InstanceTypes:
+        - !Ref MediaInstanceType
+      ScalingConfig:
+        MinSize: !Ref MediaServerReplicas
+        DesiredSize: !Ref MediaServerReplicas
+        MaxSize: !Ref MediaDesiredNodeSize
+      Labels:
+        netbackup: !Ref MediaNodeGroupName
+      Subnets:
+        - !Ref EKSSubnet2Id
+  EKSNodegroupStorage:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !If [ IsCreateNewCluster, !Ref EKSCluster , !Ref EKSClusterName ]
+      NodegroupName:
+        Ref: StorageNodeGroupName
+      NodeRole:
+        Ref: EKSRoleArn
+      InstanceTypes:
+        - !Ref StorageInstanceType
+      ScalingConfig:
+        MinSize: !Ref StorageServerReplicas
+        DesiredSize: !Ref StorageServerReplicas
+        MaxSize: !Ref StorageDesiredNodeSize
+      Labels:
+        netbackup: !Ref StorageNodeGroupName
+      Subnets:
+        - !Ref EKSSubnet2Id
+  EKSNodegroupControlPlane:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !If [ IsCreateNewCluster, !Ref EKSCluster , !Ref EKSClusterName ]
+      NodegroupName:
+        Ref: ControlPlaneNodeGroupName
+      NodeRole:
+        Ref: EKSRoleArn
+      InstanceTypes:
+        - !Ref ControlPlaneInstanceType
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: 1
+        MaxSize: !Ref ControlPlaneDesiredNodeSize
+      Labels:
+        cp-control-pool: !Ref ControlPlaneNodeGroupName
+      Subnets:
+        - !Ref EKSSubnet2Id
+  EKSNodegroupDataPlane:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !If [ IsCreateNewCluster, !Ref EKSCluster , !Ref EKSClusterName ]
+      NodegroupName:
+        Ref: DataPlaneNodeGroupName
+      NodeRole:
+        Ref: EKSRoleArn
+      InstanceTypes:
+        - !Ref DataPlaneInstanceType
+      ScalingConfig:
+        MinSize: 2
+        DesiredSize: 2
+        MaxSize: !Ref DataPlaneDesiredNodeSize
+      Labels:
+        cp-data-pool: !Ref DataPlaneNodeGroupName
+      Subnets:
+        - !Ref EKSSubnet2Id
+  KubeStateMetricsCert:
+    Type: "AWSQS::Kubernetes::Helm"
+    Condition: IsCreateNewCluster
+    DependsOn:
+      - EKSNodegroupPrimary
+      - EKSNodegroupMedia
+      - EKSNodegroupStorage
+      - EKSNodegroupDataPlane
+      - EKSNodegroupControlPlane
+    Properties:
+      ClusterID:
+        Ref: EKSClusterName
+      Name: kube-state-metrics-cert
+      Namespace: kube-state-metrics-cert
+      Repository: https://charts.jetstack.io
+      Chart: cert-manager
+      VPCConfiguration:
+        SubnetIds: 
+          - !Ref EKSSubnet1Id
+          - !Ref EKSSubnet2Id
+        SecurityGroupIds:
+          - !Ref EKSSecurityGroupIds
+      Values:
+        "installCRDs": true 
+Outputs:
+  ClusterName:
+    Condition: IsCreateNewCluster
+    Value: !Ref EKSCluster
+  EKSOpenIdConnectProviderUrl:
+    Condition: IsCreateNewCluster
+    Value: !GetAtt EKSCluster.OIDCIssuerURL
+  ClusterEndpoint:
+    Condition: IsCreateNewCluster
+    Value: !GetAtt EKSCluster.Endpoint
+  ClusterSecurityGroup:
+    Condition: IsCreateNewCluster
+    Value: !GetAtt EKSCluster.ClusterSecurityGroupId
