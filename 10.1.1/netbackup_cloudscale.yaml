@@ -737,7 +737,6 @@ Resources:
                   - "cloudwatch:ListMetrics"
                   - "cloudwatch:PutMetricData"
                 Resource: "*"
-      # PermissionsBoundary: "arn:aws:iam::975255136272:policy/AWS_Engineering_Admin_Permission_Boundary"
 
   KuernetesExecutionRole:
     Type: AWS::IAM::Role
@@ -795,7 +794,6 @@ Resources:
                   - "ssm:GetParameter"
                   - "ssm:DeleteParameter"
                 Resource: "*"
-      # PermissionsBoundary: "arn:aws:iam::975255136272:policy/AWS_Engineering_Admin_Permission_Boundary"
 
   HelmExtensionActivation:
     Type: AWS::CloudFormation::TypeActivation
