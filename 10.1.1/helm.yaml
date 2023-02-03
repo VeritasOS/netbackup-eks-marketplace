@@ -212,8 +212,7 @@ Resources:
         "environment.primary.storage.catalog.capacity": !Join ["", [!Ref PrimaryCatalogSize, "Gi"]]
         "environment.mediaServers.replicas": !Ref MediaServerReplicas
         "environment.mediaServers.storage.data.capacity": !Join ["", [!Ref MediaDataSize, "Gi"]]
-        "environment.mediaServers.storage.log.capacity": !Join ["", [!Ref MediaLogsSize, "Gi"]]
-        "msdp-operator.replicas": !Ref StorageServerReplicas   
+        "environment.mediaServers.storage.log.capacity": !Join ["", [!Ref MediaLogsSize, "Gi"]]   
         "global.containerRegistry": "709825985650.dkr.ecr.us-east-1.amazonaws.com/veritas-technologies"
         "nb-operator.image.tag": "10.1.1.0"
         "environment.tag": "'10.1.1.0'"
