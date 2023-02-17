@@ -322,11 +322,11 @@ Resources:
         "environment.msdpScaleouts.kms.keySecret": "msdp-kms-secret"
         "environment.msdpScaleouts.credential.secretName": "msdp-credential-secret"
         "environment.msdpScaleouts.storage.dataVolumes[0].storageClassName": "aws-storage"
-        "environment.msdpScaleouts.storage.dataVolumes[0].capacity": !Join ["", [!Ref StorageCatalogSizeInGi, "Gi"]]
+        "environment.msdpScaleouts.storage.dataVolumes[0].capacity": !Join ["", [!Ref DataSizeInGi, "Gi"]]
         "environment.msdpScaleouts.storage.catalog.storageClassName": "aws-storage"
-        "environment.msdpScaleouts.storage.catalog.capacity": !Join ["", [!Ref StorageLogsSizeInGi, "Gi"]]
+        "environment.msdpScaleouts.storage.catalog.capacity": !Join ["", [!Ref StorageCatalogSizeInGi, "Gi"]]
         "environment.msdpScaleouts.storage.log.storageClassName": "aws-storage"
-        "environment.msdpScaleouts.storage.log.capacity": !Join ["", [!Ref DataSizeInGi, "Gi"]]
+        "environment.msdpScaleouts.storage.log.capacity": !Join ["", [!Ref StorageLogsSizeInGi, "Gi"]]
         "environment.msdpScaleouts.secret.kms.username": !Ref KMSKeyName
         "environment.msdpScaleouts.secret.kms.passphrase": !Ref KMSKeyPassphrase
         "environment.msdpScaleouts.secret.credential.username": !Ref StorageServerUsername
