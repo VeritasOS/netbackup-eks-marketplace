@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AWS CloudFormation template that creates EFS File System and Volumes.
+Parameters:
+  ClusterName:
+    Type: String
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Specify security groups for your EFS.
+  Subnet2Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Select a subnet from the virtual network.
+  ClusterSecurityGroup:
+    Type: String
+  InstanceName:
+    Type: String
+
+Resources:
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    DeletionPolicy: Retain
+    Properties:
+      PerformanceMode: generalPurpose
+      ProvisionedThroughputInMibps: 256
+      ThroughputMode: provisioned
+      Encrypted: true
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub ${InstanceName}-primary-file-system
+
+  PrimaryEFSMountTarget:
+    Type: AWS::EFS::MountTarget
+    DeletionPolicy: Retain
+    DependsOn:
+      - EFSFileSystem
+    Properties: 
+      FileSystemId: !Ref EFSFileSystem
+      SecurityGroups: 
+        - !Ref SecurityGroup
+        - !Ref ClusterSecurityGroup
+      SubnetId: !Ref Subnet2Id
+  
+  SnapshotManagerEFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    DeletionPolicy: Retain
+    Properties:
+      PerformanceMode: generalPurpose
+      ProvisionedThroughputInMibps: 256
+      ThroughputMode: provisioned
+      Encrypted: true
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub ${InstanceName}-snapshot-manager-file-system
+  
+  SnapshotManagerEFSMountTarget:
+    Type: AWS::EFS::MountTarget
+    DeletionPolicy: Retain
+    DependsOn:
+      - SnapshotManagerEFSFileSystem
+    Properties: 
+      FileSystemId: !Ref SnapshotManagerEFSFileSystem
+      SecurityGroups: 
+        - !Ref SecurityGroup
+        - !Ref ClusterSecurityGroup
+      SubnetId: !Ref Subnet2Id
+
+  SnapshotManagerLog:
+    Type: "AWSQS::Kubernetes::Resource"
+    DependsOn:
+      - SnapshotManagerEFSFileSystem
+      - SnapshotManagerEFSMountTarget
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: default
+      Manifest: !Sub |
+        kind: StorageClass
+        apiVersion: storage.k8s.io/v1
+        metadata:
+          name: cp-log
+        provisioner: efs.csi.aws.com
+        parameters:
+          provisioningMode: efs-ap
+          fileSystemId: ${SnapshotManagerEFSFileSystem}
+          directoryPerms: "700"
+        reclaimPolicy: Retain
+        volumeBindingMode: Immediate
+        allowVolumeExpansion: true
+
+Outputs:
+  PrimaryEFSId:
+    Value: !Ref EFSFileSystem
