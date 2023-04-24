@@ -214,8 +214,8 @@ Resources:
         "global.containerRegistry": "709825985650.dkr.ecr.us-east-1.amazonaws.com/veritas-technologies"
         "nb-operator.image.tag": "10.2"
         "environment.tag": "'10.2'"
-        "msdp-operator.image.tag": "18.0"
-        "environment.msdpScaleouts.tag": "18.0"
+        "msdp-operator.image.tag": "18.0.0"
+        "environment.msdpScaleouts.tag": "18.0.0"
         "msdp-operator.storageClass.name": "aws-storage"
         "environment.primary.storage.catalog.storageClassName": !Ref PrimaryEFSId
         "environment.primary.storage.log.storageClassName": "aws-storage"
